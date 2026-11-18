@@ -59,9 +59,12 @@ public class Breakout extends GraphicsProgram {
 
 /* Method: run() */
 /** Runs the Breakout program. */
+public static void main(String[] args) {new Breakout().start(args);}
 	public void run() {
-		/* You fill this in, along with any subsidiary methods */
-
+		 paddle
 	}
-
+	private void paddle{
+		GRect paddle = new GRect(100, 50, 60, 10);
+		add(paddle);
+	}
 }
