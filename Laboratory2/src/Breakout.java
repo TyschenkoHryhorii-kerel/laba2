@@ -93,16 +93,16 @@ public class Breakout extends GraphicsProgram {
     private void createWalls(){
         leftWall = new GRect(0, 0, 10, APPLICATION_HEIGHT);
         rightWall = new GRect(APPLICATION_WIDTH-10, 0, 10, APPLICATION_HEIGHT);
-        upperWall = new GRect(0, 0, APPLICATION_WIDTH, 10);
+        upperWall = new GRect(0, 0, APPLICATION_WIDTH, 15);
         leftWall.setColor(Color.black);
         leftWall.setFilled(true);
         rightWall.setColor(Color.black);
         rightWall.setFilled(true);
         upperWall.setColor(Color.black);
         upperWall.setFilled(true);
+        add(upperWall);
         add(leftWall);
         add(rightWall);
-        add(upperWall);
     }
     private void ball(){
         ball = new GOval((APPLICATION_WIDTH/2)-BALL_RADIUS*2, APPLICATION_HEIGHT-PADDLE_Y_OFFSET-BALL_RADIUS-20, BALL_RADIUS, BALL_RADIUS);
@@ -116,6 +116,7 @@ public class Breakout extends GraphicsProgram {
             double hitOffset = ballCenterX - paddleCenterX;
             xSpeedBall = hitOffset*0.15;
             ySpeedBall*=-1;
+
         }
         else if (collider==upperWall){
             ySpeedBall*=-1;
@@ -131,8 +132,8 @@ public class Breakout extends GraphicsProgram {
     }
     private GObject getCollidingObject() {
         double ballRadius = BALL_RADIUS; // радіус м'яча
-        double ballCenterX = ball.getX() + ballRadius;
-        double ballcenterY = ball.getY() + ballRadius;
+        double ballCenterX = ball.getX() + ballRadius/2;
+        double ballcenterY = ball.getY() + ballRadius/2;
         for (int angle = 0; angle < 360; angle += 45) {
             double rad = Math.toRadians(angle);
             double checkX = ballCenterX + ballRadius * Math.cos(rad);
