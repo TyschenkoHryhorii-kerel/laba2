@@ -33,26 +33,26 @@ public class Breakout extends GraphicsProgram {
     private static final int PADDLE_Y_OFFSET = 30;
 
     /** Number of bricks per row */
-    private static final int NBRICKS_PER_ROW = 10;
+    public static final int NBRICKS_PER_ROW = 10;
 
     /** Number of rows of bricks */
-    private static final int NBRICK_ROWS = 10;
+    public static final int NBRICK_ROWS = 10;
 
     /** Separation between bricks */
-    private static final int BRICK_SEP = 4;
+    public static final int BRICK_SEP = 4;
 
     /** Width of a brick */
-    private static final int BRICK_WIDTH =
+    public static final int BRICK_WIDTH =
             (WIDTH - (NBRICKS_PER_ROW - 1) * BRICK_SEP) / NBRICKS_PER_ROW;
 
     /** Height of a brick */
-    private static final int BRICK_HEIGHT = 8;
+    public static final int BRICK_HEIGHT = 8;
 
     /** Radius of the ball in pixels */
     private static final int BALL_RADIUS = 10;
 
     /** Offset of the top brick row from the top */
-    private static final int BRICK_Y_OFFSET = 70;
+    public static final int BRICK_Y_OFFSET = 70;
 
     /** Number of turns */
     private static final int NTURNS = 3;
@@ -66,13 +66,16 @@ public class Breakout extends GraphicsProgram {
     public GRect upperWall;
     public double xSpeedBall = 1;
     public double ySpeedBall = -1;
+    public static void main(String[] args) {new Breakout().start(args);}
     public void run() {
         setSize(APPLICATION_WIDTH, APPLICATION_HEIGHT);
         paddleCreate(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_Y_OFFSET);
         createWalls();
         ball();
+        level1();
         addMouseListeners();
         gameUpdate();
+
     }
     private void gameUpdate(){
         while (true){
@@ -91,8 +94,8 @@ public class Breakout extends GraphicsProgram {
         }
     }
     private void createWalls(){
-        leftWall = new GRect(0, 0, 10, APPLICATION_HEIGHT);
-        rightWall = new GRect(APPLICATION_WIDTH-10, 0, 10, APPLICATION_HEIGHT);
+        leftWall = new GRect(-10, 0, 10, APPLICATION_HEIGHT);
+        rightWall = new GRect(APPLICATION_WIDTH, 0, 10, APPLICATION_HEIGHT);
         upperWall = new GRect(0, 0, APPLICATION_WIDTH, 15);
         leftWall.setColor(Color.black);
         leftWall.setFilled(true);
@@ -108,42 +111,80 @@ public class Breakout extends GraphicsProgram {
         ball = new GOval((APPLICATION_WIDTH/2)-BALL_RADIUS*2, APPLICATION_HEIGHT-PADDLE_Y_OFFSET-BALL_RADIUS-20, BALL_RADIUS, BALL_RADIUS);
         add(ball);
     }
-    private void ballMoving(){
+    private void ballMoving() {
         GObject collider = getCollidingObject();
-        if (collider==paddle) {
+        if (collider == paddle) {
             double paddleCenterX = paddle.getX() + PADDLE_WIDTH / 2;
             double ballCenterX = ball.getX() + BALL_RADIUS;
             double hitOffset = ballCenterX - paddleCenterX;
-            xSpeedBall = hitOffset*0.15;
-            ySpeedBall*=-1;
+            xSpeedBall = hitOffset * 0.15;
+            ySpeedBall *= -1;
 
+        } else if (collider == upperWall) {
+            ySpeedBall *= -1;
+        } else if (collider == leftWall) {
+            xSpeedBall *= -1;
+        } else if (collider == rightWall) {
+            xSpeedBall *= -1;
+        } else if (collider != null) {
+            GObject hitBrick = collider;
+
+            // Якщо collider — це внутрішня лінія, піднімаємося до самої цеглинки (GCompound)
+            if (collider.getParent() != null && collider.getParent() instanceof Brick) {
+                hitBrick = (GObject) collider.getParent();
+            }
+
+            if (hitBrick instanceof Brick) {
+                double ballCenterX = ball.getX() + BALL_RADIUS;
+                double ballCenterY = ball.getY() + BALL_RADIUS;
+                double brickX = hitBrick.getX();
+                double brickY = hitBrick.getY();
+                double brickWidth = hitBrick.getWidth();
+                double brickHeight = hitBrick.getHeight();
+                double brickCenterX = brickX + brickWidth / 2;
+                double brickCenterY = brickY + brickHeight / 2;
+                double deltaX = Math.abs(ballCenterX - brickCenterX);
+                double deltaY = Math.abs(ballCenterY - brickCenterY);
+                if (deltaX * (brickHeight / brickWidth) > deltaY) {
+                    xSpeedBall *= -1; // Рикошет по горизонталі
+                } else {
+                    ySpeedBall *= -1; // Рикошет по вертикалі
+                }
+                remove(hitBrick);
+            }
         }
-        else if (collider==upperWall){
-            ySpeedBall*=-1;
-        }
-        else if (collider==leftWall){
-            xSpeedBall*=-1;
-        }
-        else if (collider==rightWall){
-            xSpeedBall*=-1;
-        }
+
         ball.move(xSpeedBall, ySpeedBall);
-
     }
     private GObject getCollidingObject() {
-        double ballRadius = BALL_RADIUS; // радіус м'яча
-        double ballCenterX = ball.getX() + ballRadius/2;
-        double ballcenterY = ball.getY() + ballRadius/2;
+        double ballRadius = BALL_RADIUS;
+        double ballCenterX = ball.getX() + ballRadius;
+        double ballCenterY = ball.getY() + ballRadius;
         for (int angle = 0; angle < 360; angle += 45) {
             double rad = Math.toRadians(angle);
             double checkX = ballCenterX + ballRadius * Math.cos(rad);
-            double checkY = ballcenterY + ballRadius * Math.sin(rad);
+            double checkY = ballCenterY + ballRadius * Math.sin(rad);
             GObject obj = getElementAt(checkX, checkY);
-            if (obj != null) {
+            if (obj != null && obj != ball) {
                 return obj;
             }
         }
         return null;
     }
-
+    private void lineOfBricks(int startY){
+        int startX = 0;
+        for(int i = 0; i<Breakout.NBRICKS_PER_ROW; i++){
+            Brick brick = new Brick(startX, startY);
+            add(brick);
+            startX+=Breakout.BRICK_WIDTH + Breakout.BRICK_SEP;
+        }
+    }
+    private void level1(){
+        int startY = Breakout.BRICK_Y_OFFSET;
+        for(int i = 0; i<NBRICK_ROWS; i++){
+            lineOfBricks(startY);
+            startY+=(BRICK_HEIGHT+BRICK_SEP);
+        }
+    }
 }
+
