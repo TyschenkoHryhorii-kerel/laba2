@@ -36,14 +36,13 @@ public class Breakout extends GraphicsProgram {
     public static final int NBRICKS_PER_ROW = 10;
 
     /** Number of rows of bricks */
-    public static final int NBRICK_ROWS = 10;
+    public static final int NBRICK_ROWS = 5;
 
     /** Separation between bricks */
     public static final int BRICK_SEP = 4;
 
     /** Width of a brick */
-    public static final int BRICK_WIDTH =
-            (WIDTH - (NBRICKS_PER_ROW - 1) * BRICK_SEP) / NBRICKS_PER_ROW;
+    public static final int BRICK_WIDTH = (WIDTH - (NBRICKS_PER_ROW - 1) * BRICK_SEP) / NBRICKS_PER_ROW;
 
     /** Height of a brick */
     public static final int BRICK_HEIGHT = 8;
@@ -52,7 +51,7 @@ public class Breakout extends GraphicsProgram {
     private static final int BALL_RADIUS = 10;
 
     /** Offset of the top brick row from the top */
-    public static final int BRICK_Y_OFFSET = 70;
+    public static final int BRICK_Y_OFFSET = 100;
 
     /** Number of turns */
     private static final int NTURNS = 3;
@@ -66,13 +65,15 @@ public class Breakout extends GraphicsProgram {
     public GRect upperWall;
     public boolean gameInProcess = true;
     public int countOfLives;
+    public int needPointsToWin;
+    public int currentPoints = 0;
     public double xSpeedBall = 2;
     public double ySpeedBall = -2;
     public static void main(String[] args) {new Breakout().start(args);}
     //run
     public void run() {
         setSize(APPLICATION_WIDTH, APPLICATION_HEIGHT);
-        level1();
+        level3();
     }
     //апдейтить рух всіх обʼєктів
     private void gameUpdate(){
@@ -85,6 +86,7 @@ public class Breakout extends GraphicsProgram {
     //перевірка чи не трапилось чогось, що має впливати на гру(виліт мʼячика за межі ігрового поля і тд)
     private void gameTriggers(){
         lifesCheck();
+        winCheck();
     }
     //брейкає гру, якщо більше не залишилося життів
     private void lifesCheck(){
@@ -94,6 +96,7 @@ public class Breakout extends GraphicsProgram {
             countOfLives--;
             if(countOfLives==0){
                 gameInProcess = false;
+                //тут встав програшне віконце
             }
             pause(100);
             ball.setLocation((APPLICATION_WIDTH/2)-BALL_RADIUS*2, APPLICATION_HEIGHT-PADDLE_Y_OFFSET-BALL_RADIUS-20);
@@ -103,7 +106,10 @@ public class Breakout extends GraphicsProgram {
     }
     //брейкає гру, якщо гравець переміг
     private void winCheck(){
-
+        if(needPointsToWin <= currentPoints){
+            gameInProcess = false;
+            //тут встав віконце переможне
+        }
     }
     //створює ракетку, якою гравець відбиває мʼяч
     private void paddleCreate(int paddleX, int paddleY, int offset){
@@ -121,7 +127,7 @@ public class Breakout extends GraphicsProgram {
     private void createWalls(){
         leftWall = new GRect(-10, 0, 10, APPLICATION_HEIGHT);
         rightWall = new GRect(APPLICATION_WIDTH, 0, 10, APPLICATION_HEIGHT);
-        upperWall = new GRect(0, 10, APPLICATION_WIDTH, 15);
+        upperWall = new GRect(0, -20, APPLICATION_WIDTH, 20);
         leftWall.setColor(Color.black);
         leftWall.setFilled(true);
         rightWall.setColor(Color.black);
@@ -179,9 +185,9 @@ public class Breakout extends GraphicsProgram {
                     ySpeedBall *= -1;
                 }
                 remove(hitBrick);
+                currentPoints+=100;
             }
         }
-
         ball.move(xSpeedBall, ySpeedBall);
     }
     //повертає обʼєкт з яким зіткнувся мʼяч
@@ -212,6 +218,7 @@ public class Breakout extends GraphicsProgram {
     //створює перший рівень
     private void level1(){
         countOfLives = 3;
+        needPointsToWin = 5000;
         removeAll();
         paddleCreate(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_Y_OFFSET);
         createWalls();
@@ -229,6 +236,18 @@ public class Breakout extends GraphicsProgram {
     }
     //створює третій рівень
     private void level3(){
+        countOfLives = 3;
+        needPointsToWin = 5000;
+        removeAll();
+        paddleCreate(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_Y_OFFSET);
+        createWalls();
+        ball();
+        //
+        Kerel kerel = new Kerel();
+        add(kerel);
+        kerel.randomMoving();
+        addMouseListeners();
+        gameUpdate();
     }
 }
 
