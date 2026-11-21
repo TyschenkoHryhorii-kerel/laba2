@@ -64,39 +64,64 @@ public class Breakout extends GraphicsProgram {
     public GRect leftWall;
     public GRect rightWall;
     public GRect upperWall;
-    public double xSpeedBall = 1;
-    public double ySpeedBall = -1;
+    public boolean gameInProcess = true;
+    public int countOfLives;
+    public double xSpeedBall = 2;
+    public double ySpeedBall = -2;
     public static void main(String[] args) {new Breakout().start(args);}
+    //run
     public void run() {
         setSize(APPLICATION_WIDTH, APPLICATION_HEIGHT);
-        paddleCreate(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_Y_OFFSET);
-        createWalls();
-        ball();
         level1();
-        addMouseListeners();
-        gameUpdate();
-
     }
+    //апдейтить рух всіх обʼєктів
     private void gameUpdate(){
-        while (true){
+        while (gameInProcess){
             ballMoving();
+            gameTriggers();
             pause(10);
         }
     }
+    //перевірка чи не трапилось чогось, що має впливати на гру(виліт мʼячика за межі ігрового поля і тд)
+    private void gameTriggers(){
+        lifesCheck();
+    }
+    //брейкає гру, якщо більше не залишилося життів
+    private void lifesCheck(){
+        double xBall = ball.getX();
+        double yBall = ball.getY();
+        if(xBall < -10 || xBall > APPLICATION_WIDTH+10 || yBall > APPLICATION_HEIGHT||yBall<-5){
+            countOfLives--;
+            if(countOfLives==0){
+                gameInProcess = false;
+            }
+            pause(100);
+            ball.setLocation((APPLICATION_WIDTH/2)-BALL_RADIUS*2, APPLICATION_HEIGHT-PADDLE_Y_OFFSET-BALL_RADIUS-20);
+            ySpeedBall = -2;
+            xSpeedBall = 2;
+        }
+    }
+    //брейкає гру, якщо гравець переміг
+    private void winCheck(){
+
+    }
+    //створює ракетку, якою гравець відбиває мʼяч
     private void paddleCreate(int paddleX, int paddleY, int offset){
         paddle = new GRect((APPLICATION_WIDTH/2)-30, APPLICATION_HEIGHT-offset, paddleX, paddleY);
         add(paddle);
     }
+    //рухає ракетку в залежності від положення мишки гравця
     public void mouseMoved(MouseEvent e) {
         int x = e.getX();
-        if(x>10 && x<APPLICATION_WIDTH-PADDLE_WIDTH-10) {
+        if(x>0 && x<APPLICATION_WIDTH-PADDLE_WIDTH) {
             paddle.setLocation(x, APPLICATION_HEIGHT-PADDLE_Y_OFFSET);
         }
     }
+    //створює стінки
     private void createWalls(){
         leftWall = new GRect(-10, 0, 10, APPLICATION_HEIGHT);
         rightWall = new GRect(APPLICATION_WIDTH, 0, 10, APPLICATION_HEIGHT);
-        upperWall = new GRect(0, 0, APPLICATION_WIDTH, 15);
+        upperWall = new GRect(0, 10, APPLICATION_WIDTH, 15);
         leftWall.setColor(Color.black);
         leftWall.setFilled(true);
         rightWall.setColor(Color.black);
@@ -107,29 +132,32 @@ public class Breakout extends GraphicsProgram {
         add(leftWall);
         add(rightWall);
     }
+    //створює мʼяч
     private void ball(){
         ball = new GOval((APPLICATION_WIDTH/2)-BALL_RADIUS*2, APPLICATION_HEIGHT-PADDLE_Y_OFFSET-BALL_RADIUS-20, BALL_RADIUS, BALL_RADIUS);
         add(ball);
     }
+    //логіка відбивання мʼяча, а також знищення бріків
     private void ballMoving() {
         GObject collider = getCollidingObject();
         if (collider == paddle) {
             double paddleCenterX = paddle.getX() + PADDLE_WIDTH / 2;
-            double ballCenterX = ball.getX() + BALL_RADIUS;
+            double ballCenterX = ball.getX() + BALL_RADIUS/2;
             double hitOffset = ballCenterX - paddleCenterX;
             xSpeedBall = hitOffset * 0.15;
             ySpeedBall *= -1;
-
-        } else if (collider == upperWall) {
+        }
+        else if (collider == upperWall) {
             ySpeedBall *= -1;
-        } else if (collider == leftWall) {
+        }
+        else if (collider == leftWall) {
             xSpeedBall *= -1;
-        } else if (collider == rightWall) {
+        }
+        else if (collider == rightWall) {
             xSpeedBall *= -1;
-        } else if (collider != null) {
+        }
+        else if (collider != null) {
             GObject hitBrick = collider;
-
-            // Якщо collider — це внутрішня лінія, піднімаємося до самої цеглинки (GCompound)
             if (collider.getParent() != null && collider.getParent() instanceof Brick) {
                 hitBrick = (GObject) collider.getParent();
             }
@@ -146,9 +174,9 @@ public class Breakout extends GraphicsProgram {
                 double deltaX = Math.abs(ballCenterX - brickCenterX);
                 double deltaY = Math.abs(ballCenterY - brickCenterY);
                 if (deltaX * (brickHeight / brickWidth) > deltaY) {
-                    xSpeedBall *= -1; // Рикошет по горизонталі
+                    xSpeedBall *= -1;
                 } else {
-                    ySpeedBall *= -1; // Рикошет по вертикалі
+                    ySpeedBall *= -1;
                 }
                 remove(hitBrick);
             }
@@ -156,6 +184,7 @@ public class Breakout extends GraphicsProgram {
 
         ball.move(xSpeedBall, ySpeedBall);
     }
+    //повертає обʼєкт з яким зіткнувся мʼяч
     private GObject getCollidingObject() {
         double ballRadius = BALL_RADIUS;
         double ballCenterX = ball.getX() + ballRadius;
@@ -171,6 +200,7 @@ public class Breakout extends GraphicsProgram {
         }
         return null;
     }
+    //виставляє стандартний рядок бріків
     private void lineOfBricks(int startY){
         int startX = 0;
         for(int i = 0; i<Breakout.NBRICKS_PER_ROW; i++){
@@ -179,12 +209,26 @@ public class Breakout extends GraphicsProgram {
             startX+=Breakout.BRICK_WIDTH + Breakout.BRICK_SEP;
         }
     }
+    //створює перший рівень
     private void level1(){
+        countOfLives = 3;
+        removeAll();
+        paddleCreate(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_Y_OFFSET);
+        createWalls();
+        ball();
         int startY = Breakout.BRICK_Y_OFFSET;
         for(int i = 0; i<NBRICK_ROWS; i++){
             lineOfBricks(startY);
             startY+=(BRICK_HEIGHT+BRICK_SEP);
         }
+        addMouseListeners();
+        gameUpdate();
+    }
+    //створює другий рівень
+    private void level2(){
+    }
+    //створює третій рівень
+    private void level3(){
     }
 }
 
