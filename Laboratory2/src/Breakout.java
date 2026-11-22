@@ -67,13 +67,13 @@ public class Breakout extends GraphicsProgram {
     public int countOfLives;
     public int needPointsToWin;
     public int currentPoints = 0;
-    public double xSpeedBall = 2;
-    public double ySpeedBall = -2;
+    public double xSpeedBall = 1;
+    public double ySpeedBall = -1;
     public static void main(String[] args) {new Breakout().start(args);}
     //run
     public void run() {
         setSize(APPLICATION_WIDTH, APPLICATION_HEIGHT);
-        level3();
+        level1();
     }
     //апдейтить рух всіх обʼєктів
     private void gameUpdate(){
@@ -92,7 +92,7 @@ public class Breakout extends GraphicsProgram {
     private void lifesCheck(){
         double xBall = ball.getX();
         double yBall = ball.getY();
-        if(xBall < -10 || xBall > APPLICATION_WIDTH+10 || yBall > APPLICATION_HEIGHT||yBall<-5){
+        if(xBall < -10 || xBall > APPLICATION_WIDTH+10 || yBall > APPLICATION_HEIGHT || yBall<-5){
             countOfLives--;
             if(countOfLives==0){
                 gameInProcess = false;
@@ -126,7 +126,7 @@ public class Breakout extends GraphicsProgram {
     //створює стінки
     private void createWalls(){
         leftWall = new GRect(-10, 0, 10, APPLICATION_HEIGHT);
-        rightWall = new GRect(APPLICATION_WIDTH, 0, 10, APPLICATION_HEIGHT);
+        rightWall = new GRect(APPLICATION_WIDTH+5, 0, 10, APPLICATION_HEIGHT);
         upperWall = new GRect(0, -20, APPLICATION_WIDTH, 20);
         leftWall.setColor(Color.black);
         leftWall.setFilled(true);
@@ -140,14 +140,14 @@ public class Breakout extends GraphicsProgram {
     }
     //створює мʼяч
     private void ball(){
-        ball = new GOval((APPLICATION_WIDTH/2)-BALL_RADIUS*2, APPLICATION_HEIGHT-PADDLE_Y_OFFSET-BALL_RADIUS-20, BALL_RADIUS, BALL_RADIUS);
+        ball = new GOval((APPLICATION_WIDTH/2)-BALL_RADIUS, APPLICATION_HEIGHT-PADDLE_Y_OFFSET-BALL_RADIUS-20, BALL_RADIUS, BALL_RADIUS);
         add(ball);
     }
     //логіка відбивання мʼяча, а також знищення бріків
     private void ballMoving() {
         GObject collider = getCollidingObject();
         if (collider == paddle) {
-            double paddleCenterX = paddle.getX() + PADDLE_WIDTH / 2;
+            double paddleCenterX = paddle.getX() + PADDLE_WIDTH/2;
             double ballCenterX = ball.getX() + BALL_RADIUS/2;
             double hitOffset = ballCenterX - paddleCenterX;
             xSpeedBall = hitOffset * 0.15;
@@ -188,6 +188,7 @@ public class Breakout extends GraphicsProgram {
                 currentPoints+=100;
             }
         }
+        ball.move(xSpeedBall, ySpeedBall);
         ball.move(xSpeedBall, ySpeedBall);
     }
     //повертає обʼєкт з яким зіткнувся мʼяч
