@@ -57,5 +57,40 @@ public class Kerel extends GCompound {
             pause(50);
         }
     }
+    public void moveToX(double targetX) {
+        double from = kerel.getX();
+        if (from < targetX) {
+            turnRight();
+        } else {
+            turnLeft();
+        }
+        double distance = targetX - from;
+        for (int i = 0; i < 5; i++) {
+            kerel.move(distance / 5, 0);
+            pause(40);
+        }
+    }
+    public double centerX() {
+        return kerel.getX() + kerel.getWidth() / 2;
+    }
+
+    public void moveBy(double dx) {
+        if (dx > 0.5 && !right) {
+            turnRight();
+        } else if (dx < -0.5 && right) {
+            turnLeft();
+        }
+        kerel.move(dx, 0);
+    }
+
+    public void resetPose() {
+        if (right) {
+            turnRight();
+        } else {
+            turnLeft();
+        }
+    }public double bottomY() {
+        return kerel.getY() + kerel.getHeight();
+    }
     private RandomGenerator rgen = RandomGenerator.getInstance();
 }

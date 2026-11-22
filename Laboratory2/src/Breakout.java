@@ -1,10 +1,10 @@
 /*
- * File: Breakout.java
- * -------------------
- * Name:
- * Section Leader:
+- File: Breakout.java
+- -------------------
+- Name:
+- Section Leader:
  *
- * This file will eventually implement the game of Breakout.
+- This file will eventually implement the game of Breakout.
  */
 
 import acm.graphics.*;
@@ -56,6 +56,7 @@ public class Breakout extends GraphicsProgram {
     /** Number of turns */
     private static final int NTURNS = 3;
 
+    private static final double KEREL_PADDLE_GAP = 50;
     // Константи станів гри
     private static final int STATE_MENU = 1;
     private static final int STATE_PLAYING = 2;
@@ -96,7 +97,9 @@ public class Breakout extends GraphicsProgram {
     public int currentPoints = 0;
     public double xSpeedBall = 2;
     public double ySpeedBall = -2;
-    public double kerelFactor = 15;
+    public double kerelFactor = 10;
+    public GRect kerelPaddle;
+    private static final double KEREL_PADDLE_SPEED = 1.5;
     public static void main(String[] args) {new Breakout().start(args);}
     //run
     public void run() {
@@ -132,12 +135,14 @@ public class Breakout extends GraphicsProgram {
         while (gameInProcess){
             updateHearts();
             ballMoving();
+            updateKerelPaddle();
+            kerelReturnBall();
             updateBomb();
             gameTriggers();
             pause(kerelFactor);
         }
     }
-    //перевірка чи не трапилось чогось, що має впливати на гру(виліт мʼячика за межі ігрового поля і тд)
+    //перевірка чи не трапилось чогось, що має впливати на гру(виліт мʼячика за межі ігрового поля і tд)
     private void gameTriggers(){
         lifesCheck();
         winCheck();
@@ -148,13 +153,13 @@ public class Breakout extends GraphicsProgram {
         double yBall = ball.getY();
         if(xBall < -10 || xBall > APPLICATION_WIDTH+10 || yBall > APPLICATION_HEIGHT || yBall<-5){
             countOfLives--;
-            if(countOfLives==0){
+            if(countOfLives<=0){
                 gameInProcess = false;
                 showGameOverMenu();
                 return;
             }
             pause(100);
-            ball.setLocation((APPLICATION_WIDTH/2)-BALL_RADIUS*2, APPLICATION_HEIGHT-PADDLE_Y_OFFSET-BALL_RADIUS-20);
+            ball.setLocation((APPLICATION_WIDTH/2)-BALL_RADIUS, APPLICATION_HEIGHT-PADDLE_Y_OFFSET-BALL_RADIUS*2-20);
             ySpeedBall = -2;
             xSpeedBall = 2;
         }
@@ -231,27 +236,26 @@ public class Breakout extends GraphicsProgram {
     }
     //створює мʼяч
     private void ball(){
-        ball = new GOval((APPLICATION_WIDTH/2)-BALL_RADIUS, APPLICATION_HEIGHT-PADDLE_Y_OFFSET-BALL_RADIUS-20, BALL_RADIUS, BALL_RADIUS);
+        ball = new GOval((APPLICATION_WIDTH/2)-BALL_RADIUS, APPLICATION_HEIGHT-PADDLE_Y_OFFSET-BALL_RADIUS*2-20, BALL_RADIUS*2, BALL_RADIUS*2);
         add(ball);
     }
     //логіка відбивання мʼяча, а також знищення бріків
     private void ballMoving() {
         GObject collider = getCollidingObject();
         if (collider == paddle) {
-            double paddleCenterX = paddle.getX() + PADDLE_WIDTH/2;
-            double ballCenterX = ball.getX() + BALL_RADIUS/2;
+            double paddleCenterX = paddle.getX() + PADDLE_WIDTH / 2;
+            double ballCenterX = ball.getX() + BALL_RADIUS;
             double hitOffset = ballCenterX - paddleCenterX;
             xSpeedBall = hitOffset * 0.15;
-            ySpeedBall *= -1;
+            ySpeedBall = -Math.abs(ySpeedBall);
+            ball.setLocation(ball.getX(), paddle.getY() - BALL_RADIUS * 2);
         }
-        else if (collider == upperWall) {
-            ySpeedBall *= -1;
-        }
-        else if (collider == leftWall) {
-            xSpeedBall *= -1;
-        }
-        else if (collider == rightWall) {
-            xSpeedBall *= -1;
+        else if (kerelPaddle != null && collider == kerelPaddle) {
+            double paddleCenterX = kerelPaddle.getX() + PADDLE_WIDTH / 2 +10;
+            double ballCenterX = ball.getX() + BALL_RADIUS;
+            xSpeedBall = (ballCenterX - paddleCenterX) * 0.15;
+            ySpeedBall = Math.abs(ySpeedBall);
+            ball.setLocation(ball.getX(), kerelPaddle.getY() + PADDLE_HEIGHT);
         }
         else if (collider != null) {
             GObject hitBrick = collider;
@@ -276,11 +280,23 @@ public class Breakout extends GraphicsProgram {
                     ySpeedBall *= -1;
                 }
                 remove(hitBrick);
-                currentPoints+=100;
+                currentPoints += 100;
             }
         }
-        ball.move(xSpeedBall, ySpeedBall);
-
+        double nextX = ball.getX() + xSpeedBall;
+        double nextY = ball.getY() + ySpeedBall;
+        if (nextX <= 0) {
+            nextX = 0;
+            xSpeedBall = Math.abs(xSpeedBall);
+        } else if (nextX + BALL_RADIUS * 2 >= WIDTH) {
+            nextX = WIDTH - BALL_RADIUS * 2;
+            xSpeedBall = -Math.abs(xSpeedBall);
+        }
+        if (nextY <= 0) {
+            nextY = 0;
+            ySpeedBall = Math.abs(ySpeedBall);
+        }
+        ball.setLocation(nextX, nextY);
     }
     //повертає обʼєкт з яким зіткнувся мʼяч
     private GObject getCollidingObject() {
@@ -292,7 +308,7 @@ public class Breakout extends GraphicsProgram {
             double checkX = ballCenterX + ballRadius * Math.cos(rad);
             double checkY = ballCenterY + ballRadius * Math.sin(rad);
             GObject obj = getElementAt(checkX, checkY);
-            if (obj != null && obj != ball) {
+            if (obj != null && obj != ball && obj != kerel) {
                 return obj;
             }
         }
@@ -330,7 +346,7 @@ public class Breakout extends GraphicsProgram {
             return false;
         }
         return x >= button.getX() && x <= button.getX() + button.getWidth() &&
-               y >= button.getY() && y <= button.getY() + button.getHeight();
+                y >= button.getY() && y <= button.getY() + button.getHeight();
     }
 
     //віконце головного меню
@@ -395,45 +411,124 @@ public class Breakout extends GraphicsProgram {
         }
     }
     private void createHearts() {
-        heart1 = new GImage("heart.jpg");
+        heart1 = new GImage("heart.png");
         heart1.setSize(25, 25);
         heart1.setLocation(10, 10);
         add(heart1);
 
-        heart2 = new GImage("heart.jpg");
+        heart2 = new GImage("heart.png");
         heart2.setSize(25, 25);
         heart2.setLocation(40, 10);
         add(heart2);
 
-        heart3 = new GImage("heart.jpg");
+        heart3 = new GImage("heart.png");
         heart3.setSize(25, 25);
         heart3.setLocation(70, 10);
         add(heart3);
     }
 
     private void updateHearts(){
-            if (heart3 != null) {
-                heart3.setVisible(countOfLives >= 3);
-            }
-            if (heart2 != null) {
-                heart2.setVisible(countOfLives >= 2);
-            }
-            if (heart1 != null) {
-                heart1.setVisible(countOfLives >= 1);
-            }
+        if (heart3 != null) {
+            heart3.setVisible(countOfLives >= 3);
+        }
+        if (heart2 != null) {
+            heart2.setVisible(countOfLives >= 2);
+        }
+        if (heart1 != null) {
+            heart1.setVisible(countOfLives >= 1);
+        }
+    }
+    private void attackHearts() {
+        kerel.moveToX(85);
+        kerel.turnLeft();
+        kerel.prepareToAttack();
+
+        double centerX = (heart2.getX() + heart3.getX() + heart3.getWidth()) / 2;
+        double centerY = heart2.getY() + heart2.getHeight() / 2;
+
+        GImage hand = new GImage("kerelHand.jpeg");
+        hand.setSize(4, 4);
+        hand.setLocation(centerX - 2, centerY - 2);
+        add(hand);
+
+        for (int size = 4; size <= 50; size += 6) {
+            hand.setSize(size, size);
+            hand.setLocation(centerX - size / 2.0, centerY - size / 2.0);
+            pause(20);
         }
 
+        for (int i = 0; i < 4; i++) {
+            hand.move(-3, 1);
+            pause(30);
+        }
+
+        for (int i = 0; i < 3; i++) {
+            hand.move(8, -1);
+            pause(15);
+        }
+
+        double handCenterX = hand.getX() + hand.getWidth() / 2;
+        double handCenterY = hand.getY() + hand.getHeight() / 2;
+
+        for (int i = 0; i < 24; i++) {
+            heart2.move(6, -1);
+            heart3.move(6, -1);
+            if (i < 8) {
+                int size = 50 - i * 6;
+                hand.setSize(size, size);
+                hand.setLocation(handCenterX - size / 2.0, handCenterY - size / 2.0);
+            }
+            pause(20);
+        }
+
+        remove(hand);
+        remove(heart2);
+        remove(heart3);
+        countOfLives -= 2;
+    }
+    private void createKerelPaddle() {
+        kerel.resetPose();
+        double center = Math.max(PADDLE_WIDTH / 2.0, Math.min(WIDTH - PADDLE_WIDTH / 2.0, kerel.centerX()));
+        kerel.moveBy(center - kerel.centerX());
+        double paddleX = kerel.centerX() - PADDLE_WIDTH / 2.0;
+        double paddleY = kerel.bottomY() + KEREL_PADDLE_GAP;
+        kerelPaddle = new GRect(paddleX, paddleY, PADDLE_WIDTH, PADDLE_HEIGHT);
+        kerelPaddle.setFilled(true);
+        add(kerelPaddle);
+    }
+
+    private void updateKerelPaddle() {
+        if (kerelPaddle == null || kerel == null) {
+            return;
+        }
+        double target = ball.getX() + BALL_RADIUS;
+        target = Math.max(PADDLE_WIDTH / 2.0, Math.min(WIDTH - PADDLE_WIDTH / 2.0, target));
+        double dx = target - kerel.centerX();
+        kerel.moveBy(dx);
+        kerelPaddle.move(dx, 0);
+    }
+    private void kerelReturnBall() {
+        if (kerelPaddle == null) {
+            return;
+        }
+        double paddleBottom = kerelPaddle.getY() + PADDLE_HEIGHT;
+        if (ball.getY() <= paddleBottom) {
+            ySpeedBall = Math.abs(ySpeedBall);
+            ball.setLocation(ball.getX(), paddleBottom);
+        }
+    }
     //створює перший рівень
     private void level1(){
         countOfLives = 3;
         needPointsToWin = 5000;
         currentPoints = 0;
-        xSpeedBall = 1;
-        ySpeedBall = -1;
+        xSpeedBall = 2;
+        ySpeedBall = -2;
         removeAll();
         paddleCreate(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_Y_OFFSET);
         createWalls();
         ball();
+        createHearts();
         int startY = Breakout.BRICK_Y_OFFSET;
         for(int i = 0; i<NBRICK_ROWS; i++){
             lineOfBricks(startY);
@@ -447,12 +542,12 @@ public class Breakout extends GraphicsProgram {
     }
     //створює третій рівень
     private void level3(){
-        kerelFactor = 5;
+        kerelFactor = 6;
         countOfLives = 3;
         needPointsToWin = 5000;
         currentPoints = 0;
-        xSpeedBall = 1;
-        ySpeedBall = -1;
+        xSpeedBall = 2;
+        ySpeedBall = -2;
         removeAll();
         paddleCreate(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_Y_OFFSET);
         createWalls();
@@ -464,9 +559,10 @@ public class Breakout extends GraphicsProgram {
         for(int i = 0; i<10; i++) {
             kerel.randomMoving();
         }
+        attackHearts();
+        createKerelPaddle();
         createAndDropBomb();
         initMouseListeners();
         gameUpdate();
     }
 }
-
