@@ -56,6 +56,28 @@ public class Breakout extends GraphicsProgram {
     /** Number of turns */
     private static final int NTURNS = 3;
 
+    // Константи станів гри
+    private static final int STATE_MENU = 1;
+    private static final int STATE_PLAYING = 2;
+    private static final int STATE_GAME_OVER = 3;
+
+    private int gameState = STATE_MENU;
+    private int currentLevel = 1;
+
+    // Кнопки головного меню
+    private GRect btnLevel1;
+    private GRect btnLevel2;
+    private GRect btnLevel3;
+    private GRect btnExit;
+
+    // Кнопки меню програшу
+    private GRect btnRetry;
+    private GRect btnLevelMenu;
+    private GRect btnGameOverExit;
+
+    private long lastClickTime = 0;
+    private boolean mouseListenersAdded = false;
+
     /* Method: run() */
     /** Runs the Breakout program. */
     public GOval ball;
@@ -73,10 +95,34 @@ public class Breakout extends GraphicsProgram {
     //run
     public void run() {
         setSize(APPLICATION_WIDTH, APPLICATION_HEIGHT);
-        level1();
+        initMouseListeners();
+        showMainMenu();
+        while (true) {
+            if (gameState == STATE_PLAYING) {
+                if (currentLevel == 1) {
+                    level1();
+                } else if (currentLevel == 2) {
+                    level2();
+                } else if (currentLevel == 3) {
+                    level3();
+                }
+                if (gameState == STATE_PLAYING) {
+                    showMainMenu();
+                }
+            }
+            pause(50);
+        }
+    }
+    //ініціалізація слухачів подій (тільки один раз)
+    private void initMouseListeners() {
+        if (!mouseListenersAdded) {
+            addMouseListeners();
+            mouseListenersAdded = true;
+        }
     }
     //апдейтить рух всіх обʼєктів
     private void gameUpdate(){
+        gameInProcess = true;
         while (gameInProcess){
             ballMoving();
             gameTriggers();
@@ -97,6 +143,8 @@ public class Breakout extends GraphicsProgram {
             if(countOfLives==0){
                 gameInProcess = false;
                 //тут встав програшне віконце
+                showGameOverMenu();
+                return;
             }
             pause(100);
             ball.setLocation((APPLICATION_WIDTH/2)-BALL_RADIUS*2, APPLICATION_HEIGHT-PADDLE_Y_OFFSET-BALL_RADIUS-20);
@@ -118,9 +166,45 @@ public class Breakout extends GraphicsProgram {
     }
     //рухає ракетку в залежності від положення мишки гравця
     public void mouseMoved(MouseEvent e) {
+        if (!gameInProcess || paddle == null) {
+            return;
+        }
         int x = e.getX();
         if(x>0 && x<APPLICATION_WIDTH-PADDLE_WIDTH) {
             paddle.setLocation(x, APPLICATION_HEIGHT-PADDLE_Y_OFFSET);
+        }
+    }
+    //обробка кліків по кнопках меню
+    public void mouseClicked(MouseEvent e) {
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastClickTime < 250) {
+            return;
+        }
+        lastClickTime = currentTime;
+
+        int x = e.getX();
+        int y = e.getY();
+        if (gameState == STATE_MENU) {
+            if (isClicked(btnLevel1, x, y)) {
+                currentLevel = 1;
+                gameState = STATE_PLAYING;
+            } else if (isClicked(btnLevel2, x, y)) {
+                currentLevel = 2;
+                gameState = STATE_PLAYING;
+            } else if (isClicked(btnLevel3, x, y)) {
+                currentLevel = 3;
+                gameState = STATE_PLAYING;
+            } else if (isClicked(btnExit, x, y)) {
+                System.exit(0);
+            }
+        } else if (gameState == STATE_GAME_OVER) {
+            if (isClicked(btnRetry, x, y)) {
+                gameState = STATE_PLAYING;
+            } else if (isClicked(btnLevelMenu, x, y)) {
+                showMainMenu();
+            } else if (isClicked(btnGameOverExit, x, y)) {
+                System.exit(0);
+            }
         }
     }
     //створює стінки
@@ -216,10 +300,79 @@ public class Breakout extends GraphicsProgram {
             startX+=Breakout.BRICK_WIDTH + Breakout.BRICK_SEP;
         }
     }
+    //допоміжний метод для створення простої кнопки
+    private GRect createButton(String text, double x, double y, double width, double height) {
+        GRect box = new GRect(x, y, width, height);
+        box.setFilled(true);
+        box.setFillColor(Color.LIGHT_GRAY);
+        box.setColor(Color.BLACK);
+        add(box);
+
+        GLabel label = new GLabel(text);
+        label.setFont("SansSerif-BOLD-14");
+        double textX = x + (width - label.getWidth()) / 2;
+        double textY = y + (height + label.getAscent()) / 2 - 2;
+        add(label, textX, textY);
+
+        return box;
+    }
+
+    //перевірка кліку по кнопці
+    private boolean isClicked(GRect button, int x, int y) {
+        if (button == null) {
+            return false;
+        }
+        return x >= button.getX() && x <= button.getX() + button.getWidth() &&
+               y >= button.getY() && y <= button.getY() + button.getHeight();
+    }
+
+    //віконце головного меню
+    private void showMainMenu() {
+        gameState = STATE_MENU;
+        removeAll();
+
+        GLabel title = new GLabel("BREAKOUT");
+        title.setFont("SansSerif-BOLD-28");
+        double titleX = (APPLICATION_WIDTH - title.getWidth()) / 2;
+        add(title, titleX, 120);
+
+        double btnWidth = 200;
+        double btnHeight = 40;
+        double btnX = (APPLICATION_WIDTH - btnWidth) / 2;
+
+        btnLevel1 = createButton("Рівень 1", btnX, 180, btnWidth, btnHeight);
+        btnLevel2 = createButton("Рівень 2", btnX, 240, btnWidth, btnHeight);
+        btnLevel3 = createButton("Рівень 3", btnX, 300, btnWidth, btnHeight);
+        btnExit = createButton("Вихід", btnX, 360, btnWidth, btnHeight);
+    }
+
+    //віконце при програші
+    private void showGameOverMenu() {
+        gameState = STATE_GAME_OVER;
+        removeAll();
+
+        GLabel title = new GLabel("ВИ ПРОГРАЛИ");
+        title.setFont("SansSerif-BOLD-28");
+        title.setColor(Color.RED);
+        double titleX = (APPLICATION_WIDTH - title.getWidth()) / 2;
+        add(title, titleX, 140);
+
+        double btnWidth = 220;
+        double btnHeight = 42;
+        double btnX = (APPLICATION_WIDTH - btnWidth) / 2;
+
+        btnRetry = createButton("Спробувати ще раз", btnX, 200, btnWidth, btnHeight);
+        btnLevelMenu = createButton("Меню рівнів", btnX, 260, btnWidth, btnHeight);
+        btnGameOverExit = createButton("Вихід з гри", btnX, 320, btnWidth, btnHeight);
+    }
+
     //створює перший рівень
     private void level1(){
         countOfLives = 3;
         needPointsToWin = 5000;
+        currentPoints = 0;
+        xSpeedBall = 1;
+        ySpeedBall = -1;
         removeAll();
         paddleCreate(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_Y_OFFSET);
         createWalls();
@@ -229,7 +382,7 @@ public class Breakout extends GraphicsProgram {
             lineOfBricks(startY);
             startY+=(BRICK_HEIGHT+BRICK_SEP);
         }
-        addMouseListeners();
+        initMouseListeners();
         gameUpdate();
     }
     //створює другий рівень
@@ -239,6 +392,9 @@ public class Breakout extends GraphicsProgram {
     private void level3(){
         countOfLives = 3;
         needPointsToWin = 5000;
+        currentPoints = 0;
+        xSpeedBall = 1;
+        ySpeedBall = -1;
         removeAll();
         paddleCreate(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_Y_OFFSET);
         createWalls();
@@ -247,7 +403,7 @@ public class Breakout extends GraphicsProgram {
         Kerel kerel = new Kerel();
         add(kerel);
         kerel.randomMoving();
-        addMouseListeners();
+        initMouseListeners();
         gameUpdate();
     }
 }
