@@ -85,12 +85,18 @@ public class Breakout extends GraphicsProgram {
     public GRect leftWall;
     public GRect rightWall;
     public GRect upperWall;
+    public GImage bomb;
+    public Kerel kerel;
+    private GImage heart1;
+    private GImage heart2;
+    private GImage heart3;
     public boolean gameInProcess = true;
     public int countOfLives;
     public int needPointsToWin;
     public int currentPoints = 0;
-    public double xSpeedBall = 1;
-    public double ySpeedBall = -1;
+    public double xSpeedBall = 2;
+    public double ySpeedBall = -2;
+    public double kerelFactor = 15;
     public static void main(String[] args) {new Breakout().start(args);}
     //run
     public void run() {
@@ -124,9 +130,11 @@ public class Breakout extends GraphicsProgram {
     private void gameUpdate(){
         gameInProcess = true;
         while (gameInProcess){
+            updateHearts();
             ballMoving();
+            updateBomb();
             gameTriggers();
-            pause(10);
+            pause(kerelFactor);
         }
     }
     //перевірка чи не трапилось чогось, що має впливати на гру(виліт мʼячика за межі ігрового поля і тд)
@@ -142,7 +150,6 @@ public class Breakout extends GraphicsProgram {
             countOfLives--;
             if(countOfLives==0){
                 gameInProcess = false;
-                //тут встав програшне віконце
                 showGameOverMenu();
                 return;
             }
@@ -211,7 +218,7 @@ public class Breakout extends GraphicsProgram {
     private void createWalls(){
         leftWall = new GRect(-10, 0, 10, APPLICATION_HEIGHT);
         rightWall = new GRect(APPLICATION_WIDTH+5, 0, 10, APPLICATION_HEIGHT);
-        upperWall = new GRect(0, -20, APPLICATION_WIDTH, 20);
+        upperWall = new GRect(0, -30, APPLICATION_WIDTH, 35);
         leftWall.setColor(Color.black);
         leftWall.setFilled(true);
         rightWall.setColor(Color.black);
@@ -273,7 +280,7 @@ public class Breakout extends GraphicsProgram {
             }
         }
         ball.move(xSpeedBall, ySpeedBall);
-        ball.move(xSpeedBall, ySpeedBall);
+
     }
     //повертає обʼєкт з яким зіткнувся мʼяч
     private GObject getCollidingObject() {
@@ -365,6 +372,56 @@ public class Breakout extends GraphicsProgram {
         btnLevelMenu = createButton("Меню рівнів", btnX, 260, btnWidth, btnHeight);
         btnGameOverExit = createButton("Вихід з гри", btnX, 320, btnWidth, btnHeight);
     }
+    private void createAndDropBomb() {
+        if (bomb == null) {
+            bomb = new GImage("beeper.jpeg");
+            bomb.setSize(30, 30);
+            bomb.setLocation(kerel.getX(), kerel.getY());
+            add(bomb);
+        }
+    }
+
+    private void updateBomb() {
+        if (bomb != null) {
+            bomb.move(0, 5);
+            GObject collidingObject = getElementAt(bomb.getX() + bomb.getWidth() / 2, bomb.getY() + bomb.getHeight());
+            if (collidingObject != null && collidingObject != bomb) {
+                remove(bomb);
+                bomb = null;
+            } else if (bomb.getY() > APPLICATION_HEIGHT) {
+                remove(bomb);
+                bomb = null;
+            }
+        }
+    }
+    private void createHearts() {
+        heart1 = new GImage("heart.jpg");
+        heart1.setSize(25, 25);
+        heart1.setLocation(10, 10);
+        add(heart1);
+
+        heart2 = new GImage("heart.jpg");
+        heart2.setSize(25, 25);
+        heart2.setLocation(40, 10);
+        add(heart2);
+
+        heart3 = new GImage("heart.jpg");
+        heart3.setSize(25, 25);
+        heart3.setLocation(70, 10);
+        add(heart3);
+    }
+
+    private void updateHearts(){
+            if (heart3 != null) {
+                heart3.setVisible(countOfLives >= 3);
+            }
+            if (heart2 != null) {
+                heart2.setVisible(countOfLives >= 2);
+            }
+            if (heart1 != null) {
+                heart1.setVisible(countOfLives >= 1);
+            }
+        }
 
     //створює перший рівень
     private void level1(){
@@ -390,6 +447,7 @@ public class Breakout extends GraphicsProgram {
     }
     //створює третій рівень
     private void level3(){
+        kerelFactor = 5;
         countOfLives = 3;
         needPointsToWin = 5000;
         currentPoints = 0;
@@ -399,10 +457,14 @@ public class Breakout extends GraphicsProgram {
         paddleCreate(PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_Y_OFFSET);
         createWalls();
         ball();
-        //
-        Kerel kerel = new Kerel();
+        createHearts();
+        Sounds.playKerelMusic();
+        kerel = new Kerel();
         add(kerel);
-        kerel.randomMoving();
+        for(int i = 0; i<10; i++) {
+            kerel.randomMoving();
+        }
+        createAndDropBomb();
         initMouseListeners();
         gameUpdate();
     }
