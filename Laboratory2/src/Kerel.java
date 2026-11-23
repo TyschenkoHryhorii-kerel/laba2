@@ -10,18 +10,18 @@ public class Kerel extends GCompound {
     boolean right = true;
     public Kerel() {
         kerel = new GImage("kerelOrdinarR.png");
-        kerel.setSize(40, 40);
+        kerel.setSize(70, 70);
         add(kerel);
         kerel.setLocation(Breakout.APPLICATION_WIDTH/2, 40);
     }
     public void turnRight(){
         kerel.setImage("kerelOrdinarR.png");
-        kerel.setSize(40, 40);
+        kerel.setSize(70, 70);
         right = true;
     }
     public void turnLeft(){
         kerel.setImage("kerelOrdinarL.png");
-        kerel.setSize(40, 40);
+        kerel.setSize(70, 70);
         right = false;
     }
     public void randomMoving(){
@@ -89,7 +89,8 @@ public class Kerel extends GCompound {
         } else {
             turnLeft();
         }
-    }public double bottomY() {
+    }
+    public double bottomY() {
         return kerel.getY() + kerel.getHeight();
     }
     private RandomGenerator rgen = RandomGenerator.getInstance();

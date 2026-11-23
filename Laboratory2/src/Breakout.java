@@ -18,7 +18,7 @@ import java.awt.event.*;
 public class Breakout extends GraphicsProgram {
 
     /** Width and height of application window in pixels */
-    public static final int APPLICATION_WIDTH = 400;
+    public static final int APPLICATION_WIDTH = 600;
     public static final int APPLICATION_HEIGHT = 600;
 
     /** Dimensions of game board (usually the same) */
@@ -48,13 +48,10 @@ public class Breakout extends GraphicsProgram {
     public static final int BRICK_HEIGHT = 8;
 
     /** Radius of the ball in pixels */
-    private static final int BALL_RADIUS = 10;
+    private static final int BALL_RADIUS = 5;
 
     /** Offset of the top brick row from the top */
     public static final int BRICK_Y_OFFSET = 100;
-
-    /** Number of turns */
-    private static final int NTURNS = 3;
 
     private static final double KEREL_PADDLE_GAP = 50;
     // Константи станів гри
@@ -78,6 +75,7 @@ public class Breakout extends GraphicsProgram {
 
     private long lastClickTime = 0;
     private boolean mouseListenersAdded = false;
+    private boolean rotationDone = false;
 
     /* Method: run() */
     /** Runs the Breakout program. */
@@ -99,7 +97,9 @@ public class Breakout extends GraphicsProgram {
     public double ySpeedBall = -2;
     public double kerelFactor = 10;
     public GRect kerelPaddle;
+    private GLabel score = new GLabel(""+currentPoints+"/"+needPointsToWin);
     private static final double KEREL_PADDLE_SPEED = 1.5;
+    private boolean rotated = false;
     public static void main(String[] args) {new Breakout().start(args);}
     //run
     public void run() {
@@ -134,9 +134,9 @@ public class Breakout extends GraphicsProgram {
         gameInProcess = true;
         while (gameInProcess){
             updateHearts();
+            scoreBoard();
             ballMoving();
             updateKerelPaddle();
-            kerelReturnBall();
             updateBomb();
             gameTriggers();
             pause(kerelFactor);
@@ -146,28 +146,52 @@ public class Breakout extends GraphicsProgram {
     private void gameTriggers(){
         lifesCheck();
         winCheck();
+        if (gameInProcess && !rotationDone && currentPoints >= needPointsToWin / 2) {
+            rotationDone = true;
+            rotateGame();
+        }
     }
     //брейкає гру, якщо більше не залишилося життів
-    private void lifesCheck(){
+    private void lifesCheck() {
         double xBall = ball.getX();
-        double yBall = ball.getY();
-        if(xBall < -10 || xBall > APPLICATION_WIDTH+10 || yBall > APPLICATION_HEIGHT || yBall<-5){
+
+        boolean lost = rotated
+                ? xBall + BALL_RADIUS * 2 < 0
+                : ball.getY() > APPLICATION_HEIGHT;
+
+        if (lost) {
             countOfLives--;
-            if(countOfLives<=0){
+
+            if (countOfLives <= 0) {
                 gameInProcess = false;
                 showGameOverMenu();
                 return;
             }
+
             pause(100);
-            ball.setLocation((APPLICATION_WIDTH/2)-BALL_RADIUS, APPLICATION_HEIGHT-PADDLE_Y_OFFSET-BALL_RADIUS*2-20);
-            ySpeedBall = -2;
-            xSpeedBall = 2;
+
+            if (!rotated) {
+                ball.setLocation(
+                        APPLICATION_WIDTH / 2 - BALL_RADIUS,
+                        APPLICATION_HEIGHT - PADDLE_Y_OFFSET - BALL_RADIUS * 2 - 20
+                );
+                xSpeedBall = 2;
+                ySpeedBall = -2;
+            } else {
+                ball.setLocation(
+                        APPLICATION_WIDTH / 2 - BALL_RADIUS,
+                        APPLICATION_HEIGHT / 2 - BALL_RADIUS
+                );
+                xSpeedBall = 2;
+                ySpeedBall = 1;
+            }
         }
     }
     //брейкає гру, якщо гравець переміг
     private void winCheck(){
         if(needPointsToWin <= currentPoints){
             gameInProcess = false;
+
             //тут встав віконце переможне
         }
     }
@@ -181,9 +205,21 @@ public class Breakout extends GraphicsProgram {
         if (!gameInProcess || paddle == null) {
             return;
         }
-        int x = e.getX();
-        if(x>0 && x<APPLICATION_WIDTH-PADDLE_WIDTH) {
-            paddle.setLocation(x, APPLICATION_HEIGHT-PADDLE_Y_OFFSET);
+
+        if (!rotated) {
+            double x = Math.max(0, Math.min(
+                    WIDTH - paddle.getWidth(),
+                    e.getX() - paddle.getWidth() / 2
+            ));
+
+            paddle.setLocation(x, paddle.getY());
+        } else {
+            double y = Math.max(0, Math.min(
+                    HEIGHT - paddle.getHeight(),
+                    e.getY() - paddle.getHeight() / 2
+            ));
+
+            paddle.setLocation(paddle.getX(), y);
         }
     }
     //обробка кліків по кнопках меню
@@ -241,61 +277,95 @@ public class Breakout extends GraphicsProgram {
     }
     //логіка відбивання мʼяча, а також знищення бріків
     private void ballMoving() {
-        GObject collider = getCollidingObject();
-        if (collider == paddle) {
-            double paddleCenterX = paddle.getX() + PADDLE_WIDTH / 2;
-            double ballCenterX = ball.getX() + BALL_RADIUS;
-            double hitOffset = ballCenterX - paddleCenterX;
-            xSpeedBall = hitOffset * 0.15;
-            ySpeedBall = -Math.abs(ySpeedBall);
-            ball.setLocation(ball.getX(), paddle.getY() - BALL_RADIUS * 2);
-        }
-        else if (kerelPaddle != null && collider == kerelPaddle) {
-            double paddleCenterX = kerelPaddle.getX() + PADDLE_WIDTH / 2 +10;
-            double ballCenterX = ball.getX() + BALL_RADIUS;
-            xSpeedBall = (ballCenterX - paddleCenterX) * 0.15;
-            ySpeedBall = Math.abs(ySpeedBall);
-            ball.setLocation(ball.getX(), kerelPaddle.getY() + PADDLE_HEIGHT);
-        }
-        else if (collider != null) {
-            GObject hitBrick = collider;
-            if (collider.getParent() != null && collider.getParent() instanceof Brick) {
-                hitBrick = (GObject) collider.getParent();
-            }
+        double ballX = ball.getX();
+        double ballY = ball.getY();
+        double ballSize = BALL_RADIUS * 2;
 
-            if (hitBrick instanceof Brick) {
-                double ballCenterX = ball.getX() + BALL_RADIUS;
-                double ballCenterY = ball.getY() + BALL_RADIUS;
-                double brickX = hitBrick.getX();
-                double brickY = hitBrick.getY();
-                double brickWidth = hitBrick.getWidth();
-                double brickHeight = hitBrick.getHeight();
-                double brickCenterX = brickX + brickWidth / 2;
-                double brickCenterY = brickY + brickHeight / 2;
-                double deltaX = Math.abs(ballCenterX - brickCenterX);
-                double deltaY = Math.abs(ballCenterY - brickCenterY);
-                if (deltaX * (brickHeight / brickWidth) > deltaY) {
+        double nextX = ballX + xSpeedBall;
+        double nextY = ballY + ySpeedBall;
+
+        if (rotated && kerelPaddle != null && xSpeedBall > 0) {
+            if (nextX + ballSize >= kerelPaddle.getX()
+                    && nextX <= kerelPaddle.getX() + kerelPaddle.getWidth()
+                    && nextY + ballSize >= kerelPaddle.getY()
+                    && nextY <= kerelPaddle.getY() + kerelPaddle.getHeight()) {
+
+                double paddleCenter = kerelPaddle.getY() + kerelPaddle.getHeight() / 2;
+                double ballCenter = nextY + BALL_RADIUS;
+
+                ySpeedBall = (ballCenter - paddleCenter) * 0.15;
+                xSpeedBall = -Math.abs(xSpeedBall);
+
+                nextX = kerelPaddle.getX() - ballSize;
+            }
+        }
+
+        if (paddle != null && rotated && xSpeedBall < 0) {
+            if (nextX <= paddle.getX() + paddle.getWidth()
+                    && nextX + ballSize >= paddle.getX()
+                    && nextY + ballSize >= paddle.getY()
+                    && nextY <= paddle.getY() + paddle.getHeight()) {
+
+                double paddleCenter = paddle.getY() + paddle.getHeight() / 2;
+                double ballCenter = nextY + BALL_RADIUS;
+
+                ySpeedBall = (ballCenter - paddleCenter) * 0.15;
+                xSpeedBall = Math.abs(xSpeedBall);
+
+                nextX = paddle.getX() + paddle.getWidth();
+            }
+        }
+
+        GObject collider = getCollidingObject();
+
+        if (collider != null && collider != paddle && collider != kerelPaddle) {
+            if (collider instanceof Brick) {
+                double ballCenterX = ballX + BALL_RADIUS;
+                double ballCenterY = ballY + BALL_RADIUS;
+                double brickCenterX = collider.getX() + collider.getWidth() / 2;
+                double brickCenterY = collider.getY() + collider.getHeight() / 2;
+
+                if (Math.abs(ballCenterX - brickCenterX) > Math.abs(ballCenterY - brickCenterY)) {
                     xSpeedBall *= -1;
                 } else {
                     ySpeedBall *= -1;
                 }
-                remove(hitBrick);
+
+                remove(collider);
                 currentPoints += 100;
             }
         }
-        double nextX = ball.getX() + xSpeedBall;
-        double nextY = ball.getY() + ySpeedBall;
-        if (nextX <= 0) {
-            nextX = 0;
-            xSpeedBall = Math.abs(xSpeedBall);
-        } else if (nextX + BALL_RADIUS * 2 >= WIDTH) {
-            nextX = WIDTH - BALL_RADIUS * 2;
-            xSpeedBall = -Math.abs(xSpeedBall);
+
+        nextX = ballX + xSpeedBall;
+        nextY = ballY + ySpeedBall;
+
+        if (!rotated) {
+            if (nextX <= 0) {
+                nextX = 0;
+                xSpeedBall = Math.abs(xSpeedBall);
+            }
+
+            if (nextX + ballSize >= WIDTH) {
+                nextX = WIDTH - ballSize;
+                xSpeedBall = -Math.abs(xSpeedBall);
+            }
+
+            if (nextY <= 0) {
+                nextY = 0;
+                ySpeedBall = Math.abs(ySpeedBall);
+            }
+        } else {
+            if (nextY <= 0) {
+                nextY = 0;
+                ySpeedBall = Math.abs(ySpeedBall);
+            }
+
+            if (nextY + ballSize >= HEIGHT) {
+                nextY = HEIGHT - ballSize;
+                ySpeedBall = -Math.abs(ySpeedBall);
+            }
         }
-        if (nextY <= 0) {
-            nextY = 0;
-            ySpeedBall = Math.abs(ySpeedBall);
-        }
+
         ball.setLocation(nextX, nextY);
     }
     //повертає обʼєкт з яким зіткнувся мʼяч
@@ -396,7 +466,13 @@ public class Breakout extends GraphicsProgram {
             add(bomb);
         }
     }
-
+    private void scoreBoard(){
+        remove(score);
+        score.setLabel(currentPoints+"/"+needPointsToWin);
+        score.setLocation(APPLICATION_WIDTH-80, 30);
+        score.setFont("Roboto-15");
+        add(score);
+    }
     private void updateBomb() {
         if (bomb != null) {
             bomb.move(0, 5);
@@ -496,16 +572,46 @@ public class Breakout extends GraphicsProgram {
         kerelPaddle.setFilled(true);
         add(kerelPaddle);
     }
-
     private void updateKerelPaddle() {
         if (kerelPaddle == null || kerel == null) {
             return;
         }
-        double target = ball.getX() + BALL_RADIUS;
-        target = Math.max(PADDLE_WIDTH / 2.0, Math.min(WIDTH - PADDLE_WIDTH / 2.0, target));
-        double dx = target - kerel.centerX();
-        kerel.moveBy(dx);
-        kerelPaddle.move(dx, 0);
+
+        if (!rotated) {
+            double target = ball.getX() + BALL_RADIUS;
+
+            target = Math.max(
+                    kerel.getWidth() / 2,
+                    Math.min(WIDTH - kerel.getWidth() / 2, target)
+            );
+
+            double dx = target - kerel.centerX();
+
+            dx = Math.max(
+                    -kerel.getX(),
+                    Math.min(WIDTH - kerel.getX() - kerel.getWidth(), dx)
+            );
+
+            kerel.move(dx, 0);
+            kerelPaddle.move(dx, 0);
+
+        } else {
+            double targetY = ball.getY() + BALL_RADIUS
+                    - kerelPaddle.getHeight() / 2;
+
+            targetY = Math.max(
+                    0,
+                    Math.min(HEIGHT - kerelPaddle.getHeight(), targetY)
+            );
+
+            double targetX = WIDTH - kerelPaddle.getWidth() - 10;
+
+            double dx = targetX - kerelPaddle.getX();
+            double dy = targetY - kerelPaddle.getY();
+
+            kerel.move(dx, dy);
+            kerelPaddle.move(dx, dy);
+        }
     }
     private void kerelReturnBall() {
         if (kerelPaddle == null) {
@@ -517,11 +623,54 @@ public class Breakout extends GraphicsProgram {
             ball.setLocation(ball.getX(), paddleBottom);
         }
     }
+    private void rotateGame() {
+        final double cx = WIDTH / 2.0;
+        final double cy = HEIGHT / 2.0;
+
+        int count = getElementCount();
+
+        for (int i = 0; i < count; i++) {
+            GObject obj = getElement(i);
+
+            double oldX = obj.getX();
+            double oldY = obj.getY();
+            double oldW = obj.getWidth();
+            double oldH = obj.getHeight();
+
+            double centerX = oldX + oldW / 2;
+            double centerY = oldY + oldH / 2;
+
+            double newX = cx - (centerY - cy);
+            double newY = cy + (centerX - cx);
+
+            if (obj instanceof GScalable && oldW > 0 && oldH > 0) {
+                ((GScalable) obj).scale(oldH / oldW, oldW / oldH);
+            }
+
+            obj.setLocation(
+                    newX - obj.getWidth() / 2,
+                    newY - obj.getHeight() / 2
+            );
+        }
+
+        double oldXSpeed = xSpeedBall;
+        xSpeedBall = -ySpeedBall;
+        ySpeedBall = oldXSpeed;
+
+        rotated = !rotated;
+        kerel.move(-250, 20);
+        kerelPaddle.move(-50, 0);
+        pause(300);
+    }
     //створює перший рівень
     private void level1(){
+        rotated = false;
+        score = new GLabel(""+currentPoints+"/"+needPointsToWin);
+        add(score);
         countOfLives = 3;
         needPointsToWin = 5000;
         currentPoints = 0;
+        rotationDone = false;
         xSpeedBall = 2;
         ySpeedBall = -2;
         removeAll();
@@ -542,10 +691,12 @@ public class Breakout extends GraphicsProgram {
     }
     //створює третій рівень
     private void level3(){
+        rotated = false;
         kerelFactor = 6;
         countOfLives = 3;
         needPointsToWin = 5000;
         currentPoints = 0;
+        rotationDone = false;
         xSpeedBall = 2;
         ySpeedBall = -2;
         removeAll();
@@ -562,6 +713,7 @@ public class Breakout extends GraphicsProgram {
         attackHearts();
         createKerelPaddle();
         createAndDropBomb();
+        rotateGame();
         initMouseListeners();
         gameUpdate();
     }
