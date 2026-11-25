@@ -6,11 +6,6 @@ import java.awt.*;
 
 /** Клас цеглини з гармонійною палітрою кольорів і легким бліком. */
 public class Brick extends GCompound {
-    private static final Color[] PALETTE = {
-            new Color(231, 76, 60), new Color(243, 156, 18), new Color(46, 204, 113),
-            new Color(52, 152, 219), new Color(155, 89, 182), new Color(26, 188, 156)
-    };
-
     private int width = Breakout.BRICK_WIDTH;
     private int height = Breakout.BRICK_HEIGHT;
     public GLine lineLeft;
@@ -21,7 +16,7 @@ public class Brick extends GCompound {
 
     /** Створює цеглину в координатах (x, y) із випадковим кольором палітри. */
     public Brick(int x, int y) {
-        Color fill = PALETTE[rgen.nextInt(0, PALETTE.length - 1)];
+        Color fill = pickColor();
         Color border = fill.darker();
 
         this.lineLeft = new GLine(0, 0, 0, height);
@@ -50,5 +45,17 @@ public class Brick extends GCompound {
         add(this.lineUpper);
         add(this.lineDown);
         setLocation(x, y);
+    }
+
+    /** Повертає випадковий колір цеглини з аркадної палітри. */
+    private Color pickColor() {
+        switch (rgen.nextInt(0, 5)) {
+            case 0: return new Color(231, 76, 60);
+            case 1: return new Color(243, 156, 18);
+            case 2: return new Color(46, 204, 113);
+            case 3: return new Color(52, 152, 219);
+            case 4: return new Color(155, 89, 182);
+            default: return new Color(26, 188, 156);
+        }
     }
 }

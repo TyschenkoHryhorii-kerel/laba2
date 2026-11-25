@@ -744,8 +744,7 @@ public class Breakout extends GraphicsProgram {
                 || (bonus1 != null && bonus2 != null && bonus3 != null && bonus4 != null)) {
             return;
         }
-        BonusType[] types = BonusType.values();
-        BonusType chosen = types[rgen.nextInt(0, types.length - 1)];
+        BonusType chosen = randomBonusType(rgen);
         double x = Math.max(4, Math.min(WIDTH - Bonus.BONUS_WIDTH - 4,
                 brick.getX() + (brick.getWidth() - Bonus.BONUS_WIDTH) / 2.0));
         Bonus b = new Bonus(chosen, x, brick.getY());
@@ -755,6 +754,17 @@ public class Breakout extends GraphicsProgram {
         else if (bonus2 == null) { bonus2 = b; }
         else if (bonus3 == null) { bonus3 = b; }
         else { bonus4 = b; }
+    }
+
+    /** Повертає випадковий тип бонусу без використання масивів. */
+    private BonusType randomBonusType(RandomGenerator rgen) {
+        switch (rgen.nextInt(0, 4)) {
+            case 0: return BonusType.EXTRA_LIFE;
+            case 1: return BonusType.EXPAND_PADDLE;
+            case 2: return BonusType.SLOW_BALL;
+            case 3: return BonusType.SHRINK_PADDLE;
+            default: return BonusType.FAST_BALL;
+        }
     }
 
     /** Рухає один падаючий бонус і перевіряє його підбирання ракеткою. */
@@ -952,10 +962,11 @@ public class Breakout extends GraphicsProgram {
         setBackground(new Color(18, 20, 48));
         GCompound bg = new GCompound();
         addGradientBands(bg, new Color(11, 18, 38), new Color(28, 22, 62), 20);
-        int[] sx = {42, 115, 190, 275, 360, 445, 520, 565, 78, 155, 310, 485, 540, 230, 395};
-        int[] sy = {38, 85, 45, 70, 32, 92, 55, 130, 210, 315, 495, 420, 540, 535, 510};
-        for (int i = 0; i < sx.length; i++) {
-            GOval star = new GOval(sx[i], sy[i], (i % 3 == 0) ? 4 : 2, (i % 3 == 0) ? 4 : 2);
+        for (int i = 0; i < 16; i++) {
+            double x = (i * 97 + 42) % (APPLICATION_WIDTH - 40) + 20;
+            double y = (i * 131 + 38) % (APPLICATION_HEIGHT - 40) + 20;
+            int size = (i % 3 == 0) ? 4 : 2;
+            GOval star = new GOval(x, y, size, size);
             star.setFilled(true);
             Color c = (i % 2 == 0) ? new Color(180, 230, 255) : new Color(255, 220, 150);
             star.setFillColor(c);
@@ -972,10 +983,10 @@ public class Breakout extends GraphicsProgram {
         if (level == 1) {
             setBackground(new Color(20, 40, 63));
             addGradientBands(bg, new Color(13, 27, 42), new Color(27, 54, 84), 20);
-            int[] dx = {40, 140, 260, 380, 500, 90, 210, 340, 460, 555};
-            int[] dy = {150, 260, 210, 310, 185, 420, 470, 395, 490, 360};
-            for (int i = 0; i < dx.length; i++) {
-                GOval dot = new GOval(dx[i], dy[i], 3, 3);
+            for (int i = 0; i < 12; i++) {
+                double x = (i * 113 + 40) % (APPLICATION_WIDTH - 40) + 20;
+                double y = 130 + (i * 89) % (APPLICATION_HEIGHT - 170);
+                GOval dot = new GOval(x, y, 3, 3);
                 dot.setFilled(true);
                 Color c = new Color(150, 215, 255, 110);
                 dot.setFillColor(c);
@@ -1119,29 +1130,28 @@ public class Breakout extends GraphicsProgram {
         card.setColor(new Color(99, 230, 255, 140));
         add(card);
 
-        String[] lines = {
-                "Керування: рухайте мишею, щоб відбивати м'яч ракеткою.",
-                "Рівень 1: класичний Breakout (5 рядків цеглин).",
-                "Рівень 2: 8 рядків цеглин, швидший темп і бонуси.",
-                "Рівень 3: бос Керел — протримайтесь 100 секунд!",
-                "Корисні бонуси (2-й рівень — ловіть ракеткою):",
-                "  +1♥ — додаткове життя (максимум 4).",
-                "  WIDE — ширша ракетка   |   SLOW — сповільнення.",
-                "Ускладнюючі бонуси (краще уникати!):",
-                "  SHORT — вужча ракетка  |   FAST — прискорення."
-        };
-        double y = 142;
-        for (int i = 0; i < lines.length; i++) {
-            GLabel lbl = new GLabel(lines[i]);
-            boolean header = (i == 0 || i == 4 || i == 7);
-            lbl.setFont(header ? "SansSerif-BOLD-14" : "SansSerif-13");
-            if (i == 4) { lbl.setColor(new Color(82, 230, 145)); }
-            else if (i == 7) { lbl.setColor(new Color(255, 120, 110)); }
-            else { lbl.setColor(new Color(225, 235, 250)); }
-            add(lbl, 64, y);
-            y += header ? 34 : 28;
-        }
+        Color textMain = new Color(225, 235, 250);
+        Color textGood = new Color(82, 230, 145);
+        Color textBad = new Color(255, 120, 110);
+
+        addRulesLine("Керування: рухайте мишею, щоб відбивати м'яч ракеткою.", 142, textMain, true);
+        addRulesLine("Рівень 1: класичний Breakout (5 рядків цеглин).", 176, textMain, false);
+        addRulesLine("Рівень 2: 8 рядків цеглин, швидший темп і бонуси.", 204, textMain, false);
+        addRulesLine("Рівень 3: бос Керел — протримайтесь 100 секунд!", 232, textMain, false);
+        addRulesLine("Корисні бонуси (2-й рівень — ловіть ракеткою):", 266, textGood, true);
+        addRulesLine("  +1♥ — додаткове життя (максимум 4).", 296, textMain, false);
+        addRulesLine("  WIDE — ширша ракетка   |   SLOW — сповільнення.", 324, textMain, false);
+        addRulesLine("Ускладнюючі бонуси (краще уникати!):", 358, textBad, true);
+        addRulesLine("  SHORT — вужча ракетка  |   FAST — прискорення.", 388, textMain, false);
         btnBack = createButton("Назад до меню", (APPLICATION_WIDTH - 210) / 2.0, 494, 210, 44, BTN_BLUE);
+    }
+
+    /** Додає один рядок тексту на екрані правил гри. */
+    private void addRulesLine(String text, double y, Color color, boolean bold) {
+        GLabel lbl = new GLabel(text);
+        lbl.setFont(bold ? "SansSerif-BOLD-14" : "SansSerif-13");
+        lbl.setColor(color);
+        add(lbl, 64, y);
     }
 
     /** Додає картку з номером рівня та рахунком на екрани завершення гри. */
