@@ -187,7 +187,7 @@ public class Breakout extends GraphicsProgram {
                 createBombAttack();
 
                 if (currentPoints == 30) {
-                    kerelFactor = 4;
+                    kerelFactor = 5;
                     GLabel nextPhase = new GLabel("Lets Move Faster");
                     nextPhase.setFont("Arial-30");
                     nextPhase.setLocation(APPLICATION_WIDTH / 2 - 100, APPLICATION_HEIGHT / 2);
@@ -196,7 +196,7 @@ public class Breakout extends GraphicsProgram {
                     remove(nextPhase);
                 }
                 else if (currentPoints == 60) {
-                    kerelFactor = 3;
+                    kerelFactor = 4;
                     GLabel nextPhase = new GLabel("Lets Move Faster");
                     nextPhase.setFont("Arial-30");
                     nextPhase.setLocation(APPLICATION_WIDTH / 2 - 100, APPLICATION_HEIGHT / 2);
@@ -205,7 +205,7 @@ public class Breakout extends GraphicsProgram {
                     remove(nextPhase);
                 }
                 else if (currentPoints == 90) {
-                    kerelFactor = 2;
+                    kerelFactor = 3;
                     GLabel nextPhase = new GLabel("Lets Move Faster");
                     nextPhase.setFont("Arial-30");
                     nextPhase.setLocation(APPLICATION_WIDTH / 2 - 100, APPLICATION_HEIGHT / 2);
