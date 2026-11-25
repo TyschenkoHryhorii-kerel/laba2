@@ -102,8 +102,6 @@ public class Breakout extends GraphicsProgram {
     private long bonusToastEndTime = 0;
     private GImage fallingHeart;
     private long lastHeartDropTime = 0;
-    private boolean heart2Restored = false;
-    private boolean heart3Restored = false;
 
     public Kerel kerel;
     private GImage heart1, heart2, heart3, heart4;
@@ -552,11 +550,8 @@ public class Breakout extends GraphicsProgram {
     /** Оновлює текст та позицію рахунку. */
     private void scoreBoard() {
         score.setLabel(currentPoints + "/" + needPointsToWin);
-        if (timedLevel) {
-            score.setLocation(APPLICATION_WIDTH - 80, 30);
-        } else {
-            score.setLocation(APPLICATION_WIDTH - score.getWidth() - 16, 36);
-        }
+        score.setLocation(timedLevel ? APPLICATION_WIDTH - 80 : APPLICATION_WIDTH - score.getWidth() - 16,
+                timedLevel ? 30 : 36);
     }
 
     /** Створює три стартові сердечка життів. */
@@ -763,24 +758,13 @@ public class Breakout extends GraphicsProgram {
 
     /** Повертає випадковий тип бонусу без використання масивів. */
     private BonusType randomBonusType(RandomGenerator rgen) {
-        BonusType result = BonusType.FAST_BALL;
         switch (rgen.nextInt(0, 4)) {
-            case 0:
-                result = BonusType.EXTRA_LIFE;
-                break;
-            case 1:
-                result = BonusType.EXPAND_PADDLE;
-                break;
-            case 2:
-                result = BonusType.SLOW_BALL;
-                break;
-            case 3:
-                result = BonusType.SHRINK_PADDLE;
-                break;
-            default:
-                break;
+            case 0: return BonusType.EXTRA_LIFE;
+            case 1: return BonusType.EXPAND_PADDLE;
+            case 2: return BonusType.SLOW_BALL;
+            case 3: return BonusType.SHRINK_PADDLE;
+            default: return BonusType.FAST_BALL;
         }
-        return result;
     }
 
     /** Рухає один падаючий бонус і перевіряє його підбирання ракеткою. */
@@ -813,15 +797,14 @@ public class Breakout extends GraphicsProgram {
     /** Застосовує ефект підібраного бонусу та відтворює відповідний звук. */
     private void applyBonus(BonusType type) {
         long now = System.currentTimeMillis();
-        Color toastColor = Bonus.getColorForType(type);
         switch (type) {
             case EXTRA_LIFE:
                 Sounds.playBonusGood();
                 if (countOfLives < MAX_LIVES_LEVEL2) {
                     countOfLives++;
-                    showBonusToast("+1 ЖИТТЯ!", toastColor);
+                    showBonusToast("+1 ЖИТТЯ!", Bonus.getColorForType(type));
                 } else {
-                    showBonusToast("МАКС. ЖИТТІВ!", toastColor);
+                    showBonusToast("МАКС. ЖИТТІВ!", Bonus.getColorForType(type));
                 }
                 break;
             case EXPAND_PADDLE:
@@ -829,28 +812,28 @@ public class Breakout extends GraphicsProgram {
                 resizePaddle(EXPANDED_PADDLE_WIDTH);
                 paddleEffectEndTime = now + PADDLE_EFFECT_MS;
                 paddleEffectName = "WIDE";
-                showBonusToast("ШИРША РАКЕТКА!", toastColor);
+                showBonusToast("ШИРША РАКЕТКА!", Bonus.getColorForType(type));
                 break;
             case SLOW_BALL:
                 Sounds.playBonusGood();
                 kerelFactor = LEVEL2_SLOW_DELAY;
                 speedEffectEndTime = now + SPEED_EFFECT_MS;
                 speedEffectName = "SLOW";
-                showBonusToast("СПОВІЛЬНЕННЯ!", toastColor);
+                showBonusToast("СПОВІЛЬНЕННЯ!", Bonus.getColorForType(type));
                 break;
             case SHRINK_PADDLE:
                 Sounds.playBonusBad();
                 resizePaddle(SHRUNK_PADDLE_WIDTH);
                 paddleEffectEndTime = now + PADDLE_EFFECT_MS;
                 paddleEffectName = "SHORT";
-                showBonusToast("ВУЖЧА РАКЕТКА!", toastColor);
+                showBonusToast("ВУЖЧА РАКЕТКА!", Bonus.getColorForType(type));
                 break;
             case FAST_BALL:
                 Sounds.playBonusBad();
                 kerelFactor = LEVEL2_FAST_DELAY;
                 speedEffectEndTime = now + SPEED_EFFECT_MS;
                 speedEffectName = "FAST";
-                showBonusToast("ПРИСКОРЕННЯ!", toastColor);
+                showBonusToast("ПРИСКОРЕННЯ!", Bonus.getColorForType(type));
                 break;
             default:
                 break;
@@ -902,9 +885,7 @@ public class Breakout extends GraphicsProgram {
                 text = paddleEffectName + " " + ((paddleEffectEndTime - now + 999) / 1000) + "s";
             }
             if (speedEffectEndTime > 0) {
-                if (text.length() > 0) {
-                    text = text + " | ";
-                }
+                if (!text.isEmpty()) { text = text + " | "; }
                 text = text + speedEffectName + " " + ((speedEffectEndTime - now + 999) / 1000) + "s";
             }
             activeEffectLabel.setLabel(text);
@@ -931,31 +912,22 @@ public class Breakout extends GraphicsProgram {
         if (fallingHeart == null) {
             return;
         }
-        if (rotated) {
-            fallingHeart.move(-HEART_FALL_SPEED, 0);
-        } else {
-            fallingHeart.move(0, HEART_FALL_SPEED);
-        }
+        fallingHeart.move(rotated ? -HEART_FALL_SPEED : 0, rotated ? 0 : HEART_FALL_SPEED);
 
         if (paddle != null && overlaps(fallingHeart, paddle)) {
             remove(fallingHeart);
             fallingHeart = null;
             Sounds.playBonusGood();
-            int maxLives = 3;
-            if (currentLevel == 2) {
-                maxLives = MAX_LIVES_LEVEL2;
-            }
+            int maxLives = (currentLevel == 2) ? MAX_LIVES_LEVEL2 : 3;
             if (countOfLives < maxLives) {
                 countOfLives++;
-                if (timedLevel && countOfLives >= 2 && !heart2Restored && heart2 != null) {
+                if (heart2 != null && heart2.getParent() == null) {
                     heart2.setLocation(60, 10);
                     add(heart2);
-                    heart2Restored = true;
                 }
-                if (timedLevel && countOfLives >= 3 && !heart3Restored && heart3 != null) {
+                if (heart3 != null && heart3.getParent() == null) {
                     heart3.setLocation(120, 10);
                     add(heart3);
-                    heart3Restored = true;
                 }
             }
             return;
@@ -993,16 +965,10 @@ public class Breakout extends GraphicsProgram {
         for (int i = 0; i < 16; i++) {
             double x = (i * 97 + 42) % (APPLICATION_WIDTH - 40) + 20;
             double y = (i * 131 + 38) % (APPLICATION_HEIGHT - 40) + 20;
-            int size = 2;
-            if (i % 3 == 0) {
-                size = 4;
-            }
+            int size = (i % 3 == 0) ? 4 : 2;
             GOval star = new GOval(x, y, size, size);
             star.setFilled(true);
-            Color c = new Color(255, 220, 150);
-            if (i % 2 == 0) {
-                c = new Color(180, 230, 255);
-            }
+            Color c = (i % 2 == 0) ? new Color(180, 230, 255) : new Color(255, 220, 150);
             star.setFillColor(c);
             star.setColor(c);
             bg.add(star);
@@ -1022,7 +988,7 @@ public class Breakout extends GraphicsProgram {
                 double y = 130 + (i * 89) % (APPLICATION_HEIGHT - 170);
                 GOval dot = new GOval(x, y, 3, 3);
                 dot.setFilled(true);
-                Color c = new Color(85, 130, 175);
+                Color c = new Color(150, 215, 255, 110);
                 dot.setFillColor(c);
                 dot.setColor(c);
                 bg.add(dot);
@@ -1032,22 +998,22 @@ public class Breakout extends GraphicsProgram {
             addGradientBands(bg, new Color(24, 14, 46), new Color(52, 22, 84), 20);
             GOval orb1 = new GOval(-40, 260, 220, 220);
             orb1.setFilled(true);
-            orb1.setFillColor(new Color(52, 24, 88));
-            orb1.setColor(new Color(52, 24, 88));
+            orb1.setFillColor(new Color(120, 55, 190, 38));
+            orb1.setColor(new Color(120, 55, 190, 38));
             bg.add(orb1);
             GOval orb2 = new GOval(420, 320, 240, 240);
             orb2.setFilled(true);
-            orb2.setFillColor(new Color(44, 34, 94));
-            orb2.setColor(new Color(44, 34, 94));
+            orb2.setFillColor(new Color(52, 152, 219, 32));
+            orb2.setColor(new Color(52, 152, 219, 32));
             bg.add(orb2);
         } else {
             setBackground(new Color(50, 13, 23));
             addGradientBands(bg, new Color(36, 10, 18), new Color(68, 16, 28), 20);
             GOval ring1 = new GOval(120, 120, 360, 360);
-            ring1.setColor(new Color(115, 30, 46));
+            ring1.setColor(new Color(220, 60, 80, 55));
             bg.add(ring1);
             GOval ring2 = new GOval(200, 200, 200, 200);
-            ring2.setColor(new Color(130, 38, 52));
+            ring2.setColor(new Color(255, 100, 110, 45));
             bg.add(ring2);
         }
 
@@ -1055,16 +1021,12 @@ public class Breakout extends GraphicsProgram {
             double hudWidth = Math.max(APPLICATION_WIDTH + 40, getWidth() + 40);
             GRect hud = new GRect(-20, -20, hudWidth, 88);
             hud.setFilled(true);
-            hud.setFillColor(new Color(10, 15, 30));
-            hud.setColor(new Color(10, 15, 30));
+            hud.setFillColor(new Color(8, 12, 24, 170));
+            hud.setColor(new Color(8, 12, 24, 170));
             bg.add(hud);
 
             GLine line = new GLine(-20, 68, hudWidth, 68);
-            if (level == 1) {
-                line.setColor(new Color(55, 135, 180));
-            } else {
-                line.setColor(new Color(130, 80, 190));
-            }
+            line.setColor(level == 1 ? new Color(72, 190, 235, 140) : new Color(185, 120, 255, 150));
             bg.add(line);
         }
 
@@ -1075,22 +1037,14 @@ public class Breakout extends GraphicsProgram {
     /** Задає контрастні кольори ракетки, м'яча та рахунку під фон рівня. */
     private void styleLevelObjects(int level) {
         if (paddle != null) {
-            if (level == 1) {
-                paddle.setFillColor(new Color(64, 224, 255));
-            } else if (level == 2) {
-                paddle.setFillColor(new Color(255, 196, 61));
-            } else {
-                paddle.setFillColor(new Color(255, 95, 95));
-            }
+            if (level == 1) { paddle.setFillColor(new Color(64, 224, 255)); }
+            else if (level == 2) { paddle.setFillColor(new Color(255, 196, 61)); }
+            else { paddle.setFillColor(new Color(255, 95, 95)); }
             paddle.setColor(Color.WHITE);
         }
         if (ball != null) {
             ball.setFillColor(Color.WHITE);
-            if (level == 1) {
-                ball.setColor(new Color(140, 240, 255));
-            } else {
-                ball.setColor(new Color(255, 230, 130));
-            }
+            ball.setColor(level == 1 ? new Color(140, 240, 255) : new Color(255, 230, 130));
         }
         if (score != null) {
             score.setFont("SansSerif-BOLD-16");
@@ -1102,8 +1056,8 @@ public class Breakout extends GraphicsProgram {
     private GRect createButton(String text, double x, double y, double width, double height, Color fill) {
         GRoundRect shadow = new GRoundRect(x + 3, y + 4, width, height, 14, 14);
         shadow.setFilled(true);
-        shadow.setFillColor(new Color(10, 12, 26));
-        shadow.setColor(new Color(10, 12, 26));
+        shadow.setFillColor(new Color(0, 0, 0, 110));
+        shadow.setColor(new Color(0, 0, 0, 110));
         add(shadow);
 
         GRoundRect box = new GRoundRect(x, y, width, height, 14, 14);
@@ -1172,8 +1126,8 @@ public class Breakout extends GraphicsProgram {
 
         GRoundRect card = new GRoundRect(42, 102, APPLICATION_WIDTH - 84, 370, 18, 18);
         card.setFilled(true);
-        card.setFillColor(new Color(14, 22, 46));
-        card.setColor(new Color(70, 165, 200));
+        card.setFillColor(new Color(14, 22, 46, 215));
+        card.setColor(new Color(99, 230, 255, 140));
         add(card);
 
         Color textMain = new Color(225, 235, 250);
@@ -1195,11 +1149,7 @@ public class Breakout extends GraphicsProgram {
     /** Додає один рядок тексту на екрані правил гри. */
     private void addRulesLine(String text, double y, Color color, boolean bold) {
         GLabel lbl = new GLabel(text);
-        if (bold) {
-            lbl.setFont("SansSerif-BOLD-14");
-        } else {
-            lbl.setFont("SansSerif-13");
-        }
+        lbl.setFont(bold ? "SansSerif-BOLD-14" : "SansSerif-13");
         lbl.setColor(color);
         add(lbl, 64, y);
     }
@@ -1208,8 +1158,8 @@ public class Breakout extends GraphicsProgram {
     private void addStatsCard(double y) {
         GRoundRect panel = new GRoundRect(145, y, 310, 74, 16, 16);
         panel.setFilled(true);
-        panel.setFillColor(new Color(14, 22, 46));
-        panel.setColor(new Color(100, 155, 210));
+        panel.setFillColor(new Color(14, 22, 46, 210));
+        panel.setColor(new Color(140, 200, 255, 130));
         add(panel);
 
         GLabel lvl = new GLabel("Рівень: " + currentLevel);
@@ -1217,10 +1167,8 @@ public class Breakout extends GraphicsProgram {
         lvl.setColor(new Color(185, 225, 255));
         add(lvl, (APPLICATION_WIDTH - lvl.getWidth()) / 2.0, y + 30);
 
-        String txt = "Очки: " + currentPoints + " / " + needPointsToWin;
-        if (timedLevel) {
-            txt = "Витримано: " + currentPoints + " / " + needPointsToWin + " сек";
-        }
+        String txt = timedLevel ? "Витримано: " + currentPoints + " / " + needPointsToWin + " сек"
+                : "Очки: " + currentPoints + " / " + needPointsToWin;
         GLabel pts = new GLabel(txt);
         pts.setFont("SansSerif-BOLD-16");
         pts.setColor(Color.WHITE);
@@ -1413,8 +1361,6 @@ public class Breakout extends GraphicsProgram {
         bonusToastEndTime = 0;
         fallingHeart = null;
         lastHeartDropTime = 0;
-        heart2Restored = false;
-        heart3Restored = false;
         baseFrameDelay = frameDelay;
 
         heart1 = null; heart2 = null; heart3 = null; heart4 = null;
