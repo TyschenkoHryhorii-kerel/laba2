@@ -17,7 +17,7 @@ public class Brick extends GCompound {
     /** Створює цеглину в координатах (x, y) із випадковим кольором палітри. */
     public Brick(int x, int y) {
         Color fill = pickColor();
-        Color border = fill.darker();
+        Color border = new Color(25, 30, 45);
 
         this.lineLeft = new GLine(0, 0, 0, height);
         this.lineRight = new GLine(width, 0, width, height);
@@ -35,8 +35,12 @@ public class Brick extends GCompound {
 
         GRect shine = new GRect(1, 1, width - 2, 2);
         shine.setFilled(true);
-        shine.setFillColor(new Color(255, 255, 255, 85));
-        shine.setColor(new Color(255, 255, 255, 85));
+        Color shineColor = new Color(
+                Math.min(255, fill.getRed() + 55),
+                Math.min(255, fill.getGreen() + 55),
+                Math.min(255, fill.getBlue() + 55));
+        shine.setFillColor(shineColor);
+        shine.setColor(shineColor);
 
         add(inside);
         add(shine);
@@ -49,13 +53,26 @@ public class Brick extends GCompound {
 
     /** Повертає випадковий колір цеглини з аркадної палітри. */
     private Color pickColor() {
+        Color color = new Color(26, 188, 156);
         switch (rgen.nextInt(0, 5)) {
-            case 0: return new Color(231, 76, 60);
-            case 1: return new Color(243, 156, 18);
-            case 2: return new Color(46, 204, 113);
-            case 3: return new Color(52, 152, 219);
-            case 4: return new Color(155, 89, 182);
-            default: return new Color(26, 188, 156);
+            case 0:
+                color = new Color(231, 76, 60);
+                break;
+            case 1:
+                color = new Color(243, 156, 18);
+                break;
+            case 2:
+                color = new Color(46, 204, 113);
+                break;
+            case 3:
+                color = new Color(52, 152, 219);
+                break;
+            case 4:
+                color = new Color(155, 89, 182);
+                break;
+            default:
+                break;
         }
+        return color;
     }
 }

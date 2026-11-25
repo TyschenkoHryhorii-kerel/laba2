@@ -3,28 +3,16 @@ import java.applet.AudioClip;
 
 /** Клас для завантаження та відтворення звуків і фонової музики гри. */
 public class Sounds {
-    private static AudioClip hitSound = loadClip("hit.wav");
-    private static AudioClip loseLifeSound = loadClip("loseLife.wav");
-    private static AudioClip loseSound = loadClip("lose.wav");
-    private static AudioClip winSound = loadClip("win.wav");
-    private static AudioClip bonusGoodSound = loadClip("bonusGood.wav");
-    private static AudioClip bonusBadSound = loadClip("bonusBad.wav");
-    private static AudioClip bgMusic = loadClip("bgMusic.wav");
-    private static AudioClip level1Music = loadClip("level1Music.wav");
-    private static AudioClip level2Music = loadClip("level2Music.wav");
-    private static AudioClip kerelMusic = loadClip("kerel.wav");
-
-    /** Безпечно завантажує аудіофайл із кореня проєкту. */
-    private static AudioClip loadClip(String fileName) {
-        if (fileName == null || fileName.isEmpty()) {
-            return null;
-        }
-        try {
-            return MediaTools.loadAudioClip(fileName);
-        } catch (Exception e) {
-            return null;
-        }
-    }
+    private static AudioClip hitSound = MediaTools.loadAudioClip("hit.wav");
+    private static AudioClip loseLifeSound = MediaTools.loadAudioClip("loseLife.wav");
+    private static AudioClip loseSound = MediaTools.loadAudioClip("lose.wav");
+    private static AudioClip winSound = MediaTools.loadAudioClip("win.wav");
+    private static AudioClip bonusGoodSound = MediaTools.loadAudioClip("bonusGood.wav");
+    private static AudioClip bonusBadSound = MediaTools.loadAudioClip("bonusBad.wav");
+    private static AudioClip bgMusic = MediaTools.loadAudioClip("bgMusic.wav");
+    private static AudioClip level1Music = MediaTools.loadAudioClip("level1Music.wav");
+    private static AudioClip level2Music = MediaTools.loadAudioClip("level2Music.wav");
+    private static AudioClip kerelMusic = MediaTools.loadAudioClip("kerel.wav");
 
     /** Відтворює кліп, якщо він завантажений. */
     private static void playClip(AudioClip clip) {
@@ -41,22 +29,34 @@ public class Sounds {
     }
 
     /** Звук відбиття м'яча. */
-    public static void playHit() { playClip(hitSound); }
+    public static void playHit() {
+        playClip(hitSound);
+    }
 
     /** Звук втрати життя. */
-    public static void playLoseLife() { playClip(loseLifeSound); }
+    public static void playLoseLife() {
+        playClip(loseLifeSound);
+    }
 
     /** Звук поразки. */
-    public static void playLose() { playClip(loseSound); }
+    public static void playLose() {
+        playClip(loseSound);
+    }
 
     /** Звук перемоги. */
-    public static void playWinSound() { playClip(winSound); }
+    public static void playWinSound() {
+        playClip(winSound);
+    }
 
     /** Звук корисного бонусу. */
-    public static void playBonusGood() { playClip(bonusGoodSound); }
+    public static void playBonusGood() {
+        playClip(bonusGoodSound);
+    }
 
     /** Звук ускладнюючого бонусу. */
-    public static void playBonusBad() { playClip(bonusBadSound); }
+    public static void playBonusBad() {
+        playClip(bonusBadSound);
+    }
 
     /** Запускає зациклену фонову музику головного меню. */
     public static void playBgMusic() {
@@ -83,10 +83,14 @@ public class Sounds {
     }
 
     /** Зупиняє фонову музику меню. */
-    public static void stopBgMusic() { stopClip(bgMusic); }
+    public static void stopBgMusic() {
+        stopClip(bgMusic);
+    }
 
     /** Запускає музику боса Керела на 3-му рівні. */
-    public static void playKerelMusic() { playClip(kerelMusic); }
+    public static void playKerelMusic() {
+        playClip(kerelMusic);
+    }
 
     /** Зупиняє всі звуки та музику. */
     public static void stopAll() {
